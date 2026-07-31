@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Variables (shadcn/ui compatible) ─────────────────── */
+@layer base {
+  :root {
+    /* Light mode */
+    --background: 0 0% 100%;
+    --foreground: 224 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 20% 10%;
+    --primary: 224 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 15% 94%;
+    --secondary-foreground: 224 20% 10%;
+    --muted: 224 15% 94%;
+    --muted-foreground: 224 10% 50%;
+    --accent: 224 15% 94%;
+    --accent-foreground: 224 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 20% 90%;
+    --input: 224 20% 90%;
+    --ring: 224 80% 55%;
+    --radius: 0.625rem;
+
+    /* Chart colors */
+    --chart-1: 224 80% 55%;
+    --chart-2: 262 80% 60%;
+    --chart-3: 158 64% 52%;
+    --chart-4: 43 96% 56%;
+    --chart-5: 0 84% 60%;
+
+    /* Sidebar */
+    --sidebar-background: 224 30% 97%;
+    --sidebar-foreground: 224 20% 20%;
+    --sidebar-primary: 224 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 20% 92%;
+    --sidebar-accent-foreground: 224 20% 20%;
+    --sidebar-border: 224 20% 88%;
+    --sidebar-ring: 224 80% 55%;
+  }
+
+  .dark {
+    /* Dark mode — premium dark slate */
+    --background: 224 30% 7%;
+    --foreground: 224 20% 95%;
+    --card: 224 25% 10%;
+    --card-foreground: 224 20% 95%;
+    --popover: 224 25% 10%;
+    --popover-foreground: 224 20% 95%;
+    --primary: 224 80% 62%;
+    --primary-foreground: 224 30% 7%;
+    --secondary: 224 20% 16%;
+    --secondary-foreground: 224 20% 88%;
+    --muted: 224 20% 16%;
+    --muted-foreground: 224 15% 55%;
+    --accent: 224 20% 16%;
+    --accent-foreground: 224 20% 88%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 20% 18%;
+    --input: 224 20% 18%;
+    --ring: 224 80% 62%;
+
+    --sidebar-background: 224 30% 5%;
+    --sidebar-foreground: 224 15% 80%;
+    --sidebar-primary: 224 80% 62%;
+    --sidebar-primary-foreground: 224 30% 7%;
+    --sidebar-accent: 224 20% 14%;
+    --sidebar-accent-foreground: 224 15% 85%;
+    --sidebar-border: 224 20% 14%;
+    --sidebar-ring: 224 80% 62%;
+  }
+}
+
+/* ── Base Styles ─────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+/* ── Utility Classes ─────────────────────────────────────── */
+@layer utilities {
+  /* Glassmorphism card */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/10;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-brand bg-clip-text text-transparent;
+  }
+
+  /* Loading skeleton shimmer */
+  .skeleton {
+    @apply relative overflow-hidden bg-muted;
+  }
+
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--muted-foreground) / 0.08),
+      transparent
+    );
+    content: "";
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Score color utilities */
+  .score-excellent { @apply text-emerald-500; }
+  .score-good      { @apply text-blue-500; }
+  .score-average   { @apply text-yellow-500; }
+  .score-poor      { @apply text-red-500; }
+
+  .score-bg-excellent { @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400; }
+  .score-bg-good      { @apply bg-blue-500/10 text-blue-600 dark:text-blue-400; }
+  .score-bg-average   { @apply bg-yellow-500/10 text-yellow-600 dark:text-yellow-400; }
+  .score-bg-poor      { @apply bg-red-500/10 text-red-600 dark:text-red-400; }
+
+  /* Page transitions */
+  .page-enter {
+    @apply animate-fade-in;
+  }
+}
+
+/* ── Component Classes ───────────────────────────────────── */
+@layer components {
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+           text-muted-foreground transition-all duration-150
+           hover:text-foreground hover:bg-accent;
+  }
+
+  .nav-item.active {
+    @apply text-primary bg-primary/10;
+  }
+
+  /* Dashboard stat card */
+  .stat-card {
+    @apply rounded-xl border bg-card p-6 shadow-sm
+           transition-all duration-200 hover:shadow-md;
+  }
+
+  /* Resume score bar */
+  .score-bar {
+    @apply h-2 rounded-full bg-muted overflow-hidden;
+  }
+
+  .score-bar-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+}

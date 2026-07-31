@@ -1,0 +1,110 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hiresmart_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hiresmart_prod_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: hiresmart_redis_prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hiresmart_prod_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hiresmart_backend_prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - resume_prod_uploads:/app/uploads
+      - faiss_prod_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hiresmart_prod_network
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hiresmart_celery_worker_prod
+    restart: always
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+    volumes:
+      - resume_prod_uploads:/app/uploads
+      - faiss_prod_data:/app/data
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    networks:
+      - hiresmart_prod_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hiresmart_frontend_prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - hiresmart_prod_network
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  resume_prod_uploads:
+  faiss_prod_data:
+
+networks:
+  hiresmart_prod_network:
+    driver: bridge

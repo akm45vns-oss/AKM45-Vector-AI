@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+uploads/
+data/
+.cache/
+*.log
+tests/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

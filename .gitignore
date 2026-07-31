@@ -1,0 +1,68 @@
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Environment ───────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+
+# ── Node / Next.js ───────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Testing ──────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+*.pytest_cache
+.hypothesis/
+coverage.xml
+*.lcov
+
+# ── Docker ───────────────────────────────────────────────────
+*.log
+
+# ── Data / Storage ───────────────────────────────────────────
+uploads/
+data/
+*.faiss
+*.pkl
+
+# ── HuggingFace cache ─────────────────────────────────────────
+.cache/
+
+# ── Alembic ──────────────────────────────────────────────────
+# Don't ignore alembic versions — they must be committed
+# alembic/versions/
+
+# ── Misc ─────────────────────────────────────────────────────
+*.bak
+*.tmp
+.mypy_cache/
+.ruff_cache/

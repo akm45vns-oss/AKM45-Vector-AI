@@ -1,0 +1,207 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hiresmart_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiresmart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiresmart_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-hiresmart_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiresmart}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hiresmart_network
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hiresmart_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hiresmart_network
+
+  # ── MailHog (local email dev) ────────────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: hiresmart_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - hiresmart_network
+
+  # ── Ollama (local LLM) ───────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hiresmart_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - hiresmart_network
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: hiresmart_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hiresmart}:${POSTGRES_PASSWORD:-hiresmart_secret}@postgres:5432/${POSTGRES_DB:-hiresmart_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+      ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - resume_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - hiresmart_network
+
+  # ── Celery Worker ────────────────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: hiresmart_celery_worker
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4 -Q default,embeddings,llm
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hiresmart}:${POSTGRES_PASSWORD:-hiresmart_secret}@postgres:5432/${POSTGRES_DB:-hiresmart_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+      - resume_uploads:/app/uploads
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    networks:
+      - hiresmart_network
+
+  # ── Celery Beat (scheduler) ───────────────────────────────────────────────────
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: hiresmart_celery_beat
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hiresmart}:${POSTGRES_PASSWORD:-hiresmart_secret}@postgres:5432/${POSTGRES_DB:-hiresmart_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - hiresmart_network
+
+  # ── Flower (Celery monitoring) ───────────────────────────────────────────────
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: hiresmart_flower
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app flower --port=5555
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - hiresmart_network
+
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: hiresmart_frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXTAUTH_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - hiresmart_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+  resume_uploads:
+
+networks:
+  hiresmart_network:
+    driver: bridge
