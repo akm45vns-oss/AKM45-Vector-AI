@@ -65,22 +65,24 @@ class AuthService:
                 detail="An account with this email already exists.",
             )
 
-        verification_token = generate_secure_token(32)
-
+        is_dev = settings.ENVIRONMENT == "development"
+        verification_token = generate_secure_token() if not is_dev else None
         user = await self._repo.create(
             name=payload.name,
             email=payload.email,
             password_hash=hash_password(payload.password),
             role=payload.role,
+            is_email_verified=is_dev,
             email_verification_token=verification_token,
         )
 
         # Send email — failure is logged but does not fail registration
-        send_verification_email(
-            to_email=user.email,
-            user_name=user.name,
-            token=verification_token,
-        )
+        if verification_token:
+            send_verification_email(
+                to_email=user.email,
+                user_name=user.name,
+                token=verification_token,
+            )
 
         logger.info("User registered", user_id=str(user.id), role=payload.role.value)
         return user

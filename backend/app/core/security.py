@@ -8,9 +8,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 import structlog
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.schemas.auth import TokenPayload
@@ -18,21 +18,22 @@ from app.schemas.auth import TokenPayload
 logger = structlog.get_logger(__name__)
 
 # ── Password hashing ─────────────────────────────────────────────────────────
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=settings.BCRYPT_ROUNDS,
-)
-
 
 def hash_password(plain_password: str) -> str:
-    """Hash a plain-text password using bcrypt."""
-    return pwd_context.hash(plain_password)
+    """Hash a plain-text password using bcrypt with 72-byte safe truncation."""
+    pw_bytes = plain_password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+    return bcrypt.hashpw(pw_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain-text password against a bcrypt hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        pw_bytes = plain_password.encode("utf-8")[:72]
+        hash_bytes = hashed_password.encode("utf-8")
+        return bcrypt.checkpw(pw_bytes, hash_bytes)
+    except Exception:
+        return False
 
 
 # ── JWT tokens ───────────────────────────────────────────────────────────────

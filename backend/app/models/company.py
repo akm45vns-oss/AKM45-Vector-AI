@@ -6,8 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.engine import Base
@@ -25,7 +24,7 @@ class Company(Base):
     __tablename__ = "companies"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
@@ -38,7 +37,7 @@ class Company(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )

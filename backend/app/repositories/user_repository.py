@@ -80,6 +80,7 @@ class UserRepository:
         email: str,
         password_hash: str,
         role: UserRole,
+        is_email_verified: bool = False,
         email_verification_token: Optional[str] = None,
     ) -> User:
         """Insert a new user and return the persisted instance."""
@@ -88,6 +89,7 @@ class UserRepository:
             email=email.lower().strip(),
             password_hash=password_hash,
             role=role,
+            is_email_verified=is_email_verified,
             email_verification_token=email_verification_token,
         )
         self._db.add(user)

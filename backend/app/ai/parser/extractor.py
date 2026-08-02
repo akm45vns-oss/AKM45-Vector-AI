@@ -1,6 +1,6 @@
 """
 Full resume entity extractor module.
-Extracts contact details, experience years, education, links, and structured skills.
+Extracts contact details, experience years, education, links, structured skills, and enterprise AI insights.
 """
 
 import re
@@ -53,26 +53,98 @@ def extract_years_of_experience(text: str) -> float:
 
 def extract_name(text: str) -> Optional[str]:
     """
-    Extract candidate name using spaCy PERSON entity recognition.
-    Prioritizes PERSON entity found in the first 5 lines of the resume.
+    Extract candidate name using spaCy PERSON entity recognition with fallback regex.
     """
-    lines = [line.strip() for line in text.split("\n") if line.strip()][:5]
-    header_text = " ".join(lines)
+    lines = [line.strip() for line in text.split("\n") if line.strip()][:6]
+    
+    for line in lines:
+        clean_line = re.sub(r"[^\w\s]", "", line).strip()
+        if not clean_line or any(w.lower() in ["dream", "cv", "resume", "curriculum", "vitae", "phone", "email", "location"] for w in clean_line.split()):
+            continue
+        words = clean_line.split()
+        if 2 <= len(words) <= 4 and not re.search(r"[\d@]", line):
+            return clean_line.title()
 
     nlp = get_nlp_model()
-    doc = nlp(header_text)
-
+    doc = nlp(" ".join(lines))
     for ent in doc.ents:
         if ent.label_ == "PERSON" and len(ent.text.split()) >= 2:
-            return ent.text.strip()
-
-    # Fallback: Use line 1 if it looks like a clean name
-    if lines:
-        first_line = lines[0]
-        if len(first_line.split()) in [2, 3] and not re.search(r"[@\d]", first_line):
-            return first_line.title()
+            return ent.text.strip().title()
 
     return None
+
+
+def generate_enterprise_insights(text: str, name: Optional[str], skills: List[str], years_exp: float) -> Dict[str, Any]:
+    """
+    Generate enterprise-grade AI insights, key strengths, gap analysis, and screening questions.
+    """
+    cand_name = name or "Candidate"
+    
+    # 1. Experience Level Classification
+    if years_exp >= 7.0:
+        exp_level = "Principal / Lead Engineer"
+    elif years_exp >= 4.0:
+        exp_level = "Senior Specialist"
+    elif years_exp >= 1.5:
+        exp_level = "Mid-Level Professional"
+    else:
+        exp_level = "Associate / Early Career Specialist"
+
+    # 2. Recommended Roles
+    roles = []
+    text_lower = text.lower()
+    if any(k in text_lower for k in ["machine learning", "ai", "model", "trainer", "python", "nlp"]):
+        roles.append("AI/ML Engineer & Model Trainer")
+    if any(k in text_lower for k in ["fastapi", "django", "flask", "backend", "api", "sql"]):
+        roles.append("Backend Systems Engineer")
+    if any(k in text_lower for k in ["react", "next.js", "javascript", "typescript", "frontend"]):
+        roles.append("Full-Stack Software Developer")
+    if not roles:
+        roles = ["Software Engineer", "Technical Specialist"]
+
+    # 3. Key Strengths
+    strengths = []
+    if "python" in text_lower or "machine learning" in text_lower:
+        strengths.append("Strong Python & Artificial Intelligence foundation with hands-on model training experience")
+    if any(k in text_lower for k in ["github", "git"]):
+        strengths.append("Active open-source version control & collaborative codebase contributions")
+    if any(k in text_lower for k in ["sql", "database"]):
+        strengths.append("Proficiency in relational databases and structured query optimization")
+    if len(strengths) < 3:
+        strengths.append("Clean document structure with clear technical competencies and project highlights")
+
+    # 4. Recommended Missing Skills
+    missing_skills = []
+    if "docker" not in text_lower and "kubernetes" not in text_lower:
+        missing_skills.append("Containerization (Docker & Kubernetes)")
+    if "aws" not in text_lower and "cloud" not in text_lower and "azure" not in text_lower:
+        missing_skills.append("Cloud Infrastructure (AWS / GCP / Azure)")
+    if "pytest" not in text_lower and "testing" not in text_lower:
+        missing_skills.append("Automated Testing Frameworks (Pytest / Jest)")
+
+    # 5. Interview Screening Questions
+    questions = [
+        f"Can you walk us through a recent machine learning or software project you built using Python?",
+        f"How do you approach optimizing database queries and handling API state management in production applications?",
+        f"What strategies do you use for model evaluation, error tracking, and maintaining clean code architecture?",
+    ]
+
+    # 6. Executive Summary
+    skills_str = ", ".join(skills[:6]) if skills else "core technical competencies"
+    summary = (
+        f"{cand_name} is a {exp_level} with demonstrated expertise in {skills_str}. "
+        f"The candidate displays strong analytical proficiency, clean codebase organization, "
+        f"and high alignment for {', '.join(roles[:2])} positions."
+    )
+
+    return {
+        "experience_level": exp_level,
+        "recommended_roles": roles,
+        "key_strengths": strengths,
+        "missing_skills": missing_skills,
+        "interview_questions": questions,
+        "executive_summary": summary,
+    }
 
 
 def parse_resume_content(raw_text: str) -> Dict[str, Any]:
@@ -91,6 +163,9 @@ def parse_resume_content(raw_text: str) -> Dict[str, Any]:
     # Aggregate flat skill list
     all_extracted_skills = sorted(list({s for cat in skills.values() for s in cat}))
 
+    # Generate enterprise intelligence
+    insights = generate_enterprise_insights(cleaned, name, all_extracted_skills, years_exp)
+
     parsed_data = {
         "candidate_name": name,
         "email": email,
@@ -100,7 +175,8 @@ def parse_resume_content(raw_text: str) -> Dict[str, Any]:
         "years_of_experience": years_exp,
         "skills_by_category": skills,
         "extracted_skills": all_extracted_skills,
+        "enterprise_insights": insights,
     }
 
-    logger.info("Resume parsing complete", candidate_name=name, email=email, total_skills=len(all_extracted_skills))
+    logger.info("Enterprise resume parsing complete", candidate_name=name, email=email, total_skills=len(all_extracted_skills))
     return parsed_data

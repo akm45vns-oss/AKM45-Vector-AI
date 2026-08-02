@@ -1,9 +1,8 @@
 """
 PDF document parser.
-Uses PyMuPDF (fitz) with pdfplumber fallback and pytesseract OCR fallback for scanned PDFs.
+Uses PyMuPDF (fitz) with pdfplumber, pypdf, and pytesseract OCR fallbacks.
 """
 
-import fitz  # PyMuPDF
 import structlog
 from typing import Optional
 
@@ -14,12 +13,16 @@ def extract_text_from_pdf(file_path: str) -> str:
     """
     Extract raw text from a PDF file.
 
-    1. Attempts extraction using PyMuPDF (fitz) for speed & layout preserving.
-    2. Fallback to pdfplumber if fitz returns empty/whitespace.
-    3. OCR fallback using pytesseract + Pillow if text is still empty (scanned PDF).
+    1. Attempts extraction using PyMuPDF (fitz).
+    2. Fallback to pdfplumber if fitz fails or is missing.
+    3. Fallback to pypdf if pdfplumber fails or is missing.
+    4. OCR fallback using pytesseract + Pillow for scanned PDFs.
     """
     text = ""
+
+    # Attempt 1: PyMuPDF (fitz)
     try:
+        import fitz  # PyMuPDF
         doc = fitz.open(file_path)
         for page in doc:
             page_text = page.get_text("text")
@@ -46,10 +49,26 @@ def extract_text_from_pdf(file_path: str) -> str:
             logger.info("PDF text extracted via pdfplumber fallback", char_count=len(text))
             return text.strip()
     except Exception as e:
-        logger.warning("pdfplumber extraction failed", error=str(e))
+        logger.warning("pdfplumber extraction failed, trying pypdf fallback", error=str(e))
 
-    # Fallback 2: OCR with pytesseract for image-only/scanned PDFs
+    # Fallback 2: pypdf
     try:
+        from pypdf import PdfReader
+        reader = PdfReader(file_path)
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+
+        if text.strip():
+            logger.info("PDF text extracted via pypdf fallback", char_count=len(text))
+            return text.strip()
+    except Exception as e:
+        logger.warning("pypdf extraction failed", error=str(e))
+
+    # Fallback 3: OCR with pytesseract for image-only/scanned PDFs
+    try:
+        import fitz
         import pytesseract
         from PIL import Image
         doc = fitz.open(file_path)

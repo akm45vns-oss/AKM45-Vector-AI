@@ -14,9 +14,9 @@ from sqlalchemy import (
     ForeignKey,
     String,
     Text,
+    Uuid,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.engine import Base
@@ -41,7 +41,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,

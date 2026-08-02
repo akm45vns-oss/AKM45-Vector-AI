@@ -15,9 +15,9 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Uuid,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.engine import Base
@@ -54,19 +54,19 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     company_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     recruiter_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

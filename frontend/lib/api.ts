@@ -9,7 +9,8 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BASE_URL = rawBaseUrl.endsWith("/api/v1") ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, "")}/api/v1`;
 
 // ── Token helpers ──────────────────────────────────────────────────────────────
 const TOKEN_KEY = "hiresmart_access_token";

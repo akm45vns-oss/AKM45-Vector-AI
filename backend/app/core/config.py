@@ -4,7 +4,7 @@ Uses pydantic-settings for type-safe config management.
 """
 
 from functools import lru_cache
-from typing import List, Literal
+from typing import Any, List, Literal
 
 from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,52 +23,60 @@ class Settings(BaseSettings):
     # ── App ─────────────────────────────────────────────────
     APP_NAME: str = "AKM45 Vector AI"
     APP_VERSION: str = "1.0.0"
+    API_V1_STR: str = "/api/v1"
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = False
 
     # ── Security ─────────────────────────────────────────────
-    SECRET_KEY: str = Field(..., min_length=32)
+    SECRET_KEY: str = Field(
+        default="dev-secret-key-akm45-vector-ai-at-least-32-chars-long-secret",
+        min_length=32,
+    )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     BCRYPT_ROUNDS: int = 12
 
     # ── Database ─────────────────────────────────────────────
-    DATABASE_URL: str = Field(...)
+    DATABASE_URL: str = Field(
+        default="sqlite+aiosqlite:///./local_dev.db"
+    )
 
     # ── Redis ────────────────────────────────────────────────
-    REDIS_URL: str = Field(...)
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0"
+    )
     CELERY_BROKER_URL: str = ""
     CELERY_RESULT_BACKEND: str = ""
 
     # ── CORS ─────────────────────────────────────────────────
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    TRUSTED_HOSTS: List[str] = ["*"]
+    ALLOWED_ORIGINS: Any = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    TRUSTED_HOSTS: Any = ["*"]
 
-    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @field_validator("ALLOWED_ORIGINS", "TRUSTED_HOSTS", "ALLOWED_FILE_TYPES", mode="before")
     @classmethod
-    def parse_origins(cls, v: str | List[str]) -> List[str]:
+    def parse_list_fields(cls, v: Any) -> List[str]:
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            v_str = v.strip()
+            if v_str.startswith("[") and v_str.endswith("]"):
+                import json
+                try:
+                    return json.loads(v_str)
+                except Exception:
+                    pass
+            return [item.strip().lower() for item in v_str.split(",") if item.strip()]
         return v
 
     # ── Email ────────────────────────────────────────────────
     RESEND_API_KEY: str = ""
     EMAIL_FROM: str = "noreply@hiresmart.ai"
-    EMAIL_FROM_NAME: str = "HireSmart AI"
+    EMAIL_FROM_NAME: str = "AKM45 Vector AI"
 
     # ── File Storage ─────────────────────────────────────────
     STORAGE_BACKEND: Literal["local", "supabase"] = "local"
     UPLOAD_DIR: str = "/app/uploads"
     MAX_FILE_SIZE_MB: int = 10
-    ALLOWED_FILE_TYPES: List[str] = ["pdf", "docx"]
-
-    @field_validator("ALLOWED_FILE_TYPES", mode="before")
-    @classmethod
-    def parse_file_types(cls, v: str | List[str]) -> List[str]:
-        if isinstance(v, str):
-            return [ft.strip().lower() for ft in v.split(",")]
-        return v
+    ALLOWED_FILE_TYPES: Any = ["pdf", "docx"]
 
     @property
     def MAX_FILE_SIZE_BYTES(self) -> int:

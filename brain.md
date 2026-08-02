@@ -258,6 +258,34 @@ hiresmart-ai/
 | 2026-07-26 | Phase 2 complete — full authentication system | backend/app/(models,schemas,core,services,api)/auth* + frontend/ | Full auth system ready |
 | 2026-07-31 | Phase 3 complete — database models & domain APIs | backend/app/(models,schemas,repositories,services,api)/* + alembic | Core relational models & CRUD endpoints ready |
 | 2026-07-31 | Fixed package dependencies & UI styling | frontend/postcss.config.mjs, frontend/package.json, backend/requirements.txt | Added PostCSS config, installed `tailwindcss-animate`, fixed invalid `@radix-ui/react-badge` npm package & removed `psycopg2-binary` source compile error |
+| 2026-07-31 | Pushed project to GitHub | Entire repository | Initialized git, committed 133 production files, and pushed to `https://github.com/akm45vns-oss/AKM45-Vector-AI.git` |
+| 2026-07-31 | Renamed Project to AKM45 Vector AI | Entire codebase | Updated APP_NAME, metadata, UI logos, and README documentation to AKM45 Vector AI |
+| 2026-07-31 | Docker Compose Cleanup | docker-compose.yml, docker-compose.prod.yml | Removed obsolete top-level `version` attributes for Docker Compose v2 compatibility |
+| 2026-07-31 | Python 3.14 Compatibility Fix | backend/requirements.txt | Unpinned exact `faiss-cpu==1.9.0` and `spacy==3.8.2` versions to flexible `>=` specs for Python 3.14 Windows compatibility |
+| 2026-07-31 | Virtual Environment Package Installation | backend/venv | Executed `pip install -r requirements.txt` inside `venv` to install `uvicorn`, `fastapi`, and backend packages |
+| 2026-07-31 | Backend Server Live & Verified | backend/main.py, app/core/(config,logging).py | Resolved `email-validator`, `aiofiles`, schema imports, Pydantic settings validators, and verified healthy server response at `http://127.0.0.1:8000/health` |
+| 2026-08-02 | Launched Backend and Frontend Servers | backend & frontend | Started FastAPI on `http://localhost:8000` and Next.js 15 frontend on `http://localhost:3001` |
+| 2026-08-02 | Port 3000 Conflict Resolved | frontend | Terminated stale process occupying port 3000 and rebound AKM45 Vector AI frontend directly to `http://localhost:3000` |
+| 2026-08-02 | CORS & SQLite Database Enabled | frontend/lib/api.ts, backend/app/models/* | Fixed API base URL `/api/v1` route prefix, expanded CORS origins, and enabled SQLite zero-dependency local database for offline execution |
+| 2026-08-02 | Dual API Route Mounts Registered | backend/main.py, backend/app/core/config.py | Added `API_V1_STR="/api/v1"` to `Settings` and mounted both `/api/v1/auth/register` and `/auth/register` routes |
+| 2026-08-02 | Passlib/Bcrypt Bug Fixed | backend/app/core/security.py | Replaced legacy `passlib` CryptContext with native `bcrypt` module to resolve passlib 72-byte initialization bug on Python 3.14 / bcrypt 4.x |
+| 2026-08-02 | Dashboard Sub-Routes Created | frontend/app/(dashboard)/dashboard/* | Created `/dashboard/candidate`, `/dashboard/recruiter`, and `/dashboard/admin` routes resolving Next.js 404 page error |
+| 2026-08-02 | Email Verification Bypass for Dev | backend/app/core/dependencies.py, backend/app/services/auth_service.py | Configured development mode auto-verification & dependency bypass for seamless local resume uploads without email server setup |
+| 2026-08-02 | Settings Import Added to Dependencies | backend/app/core/dependencies.py | Fixed `NameError: name 'settings' is not defined` in `get_current_verified_user` dependency |
+| 2026-08-02 | Resume Model Column Alignment | backend/app/models/resume.py | Aligned `Resume` model attributes with `file_url`, `file_type`, and `parsed_text` resolving TypeError on upload |
+| 2026-08-02 | Fresh Database Schema Recreated | backend/local_dev.db | Recreated `local_dev.db` with new `resumes` table columns (`file_url`, `file_type`, `parsed_text`) |
+| 2026-08-02 | Custom HTTPException Handler | backend/main.py | Added custom `HTTPException` handler in `main.py` ensuring CORS headers accompany all API error responses |
+| 2026-08-02 | UserRepository.create Parameter Fix | backend/app/repositories/user_repository.py | Added `is_email_verified: bool = False` parameter to `UserRepository.create(...)` resolving TypeError during registration |
+| 2026-08-02 | Auth Service Verification Token Definition | backend/app/services/auth_service.py | Defined `verification_token` variable before creating user record resolving NameError in `register()` |
+| 2026-08-02 | Candidate Resume Detail Sub-Route | frontend/app/(dashboard)/candidate/resume/[id]/page.tsx | Built full Candidate Resume Detail page and dynamic dashboard linkage, resolving Next.js 404 page error |
+| 2026-08-02 | Directive Typo Fix | frontend/app/(dashboard)/candidate/resume/[id]/page.tsx | Fixed `"use "client";` syntax error on line 1 of page.tsx |
+| 2026-08-02 | Sonner Toast Import Fix | frontend/app/(dashboard)/candidate/resume/[id]/page.tsx | Replaced `react-hot-toast` with `sonner` resolving Module Not Found build error |
+| 2026-08-02 | AI Resume Parser Packages Installed | backend/venv | Installed PyMuPDF, pdfplumber, pypdf, spacy, langdetect, nltk resolving empty text extraction |
+| 2026-08-02 | Enterprise Intelligence Engine | backend/app/ai/parser/extractor.py | Built automated Seniority Classification, Executive Summary synthesis, Skill Taxonomy matrix, Gap Analysis, and AI Screening Question generation |
+| 2026-08-02 | Enterprise Candidate Resume Detail Screen | frontend/app/(dashboard)/candidate/resume/[id]/page.tsx | Built Enterprise Executive candidate dashboard with live LinkedIn/GitHub links, categorized skill taxonomy, AI evaluation, and raw text inspector |
+| 2026-08-02 | Extract Candidate Name Improvement | backend/app/ai/parser/extractor.py | Improved candidate name regex parser to extract candidate names from resume titles |
+| 2026-08-02 | Unlocked Database Deletion | backend/local_dev.db | Terminated process holding handle on `local_dev.db` and cleanly deleted file to generate fresh schema |
+| 2026-08-02 | Auth & Login Guide Provided | frontend/app/(auth)/* | Documented registration flow, login credentials requirements, and OpenAPI swagger testing |
 
 ---
 

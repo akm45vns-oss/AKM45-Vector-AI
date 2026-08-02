@@ -12,8 +12,8 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    Uuid,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.engine import Base
@@ -31,7 +31,7 @@ class Skill(Base):
     __tablename__ = "skills"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
@@ -51,12 +51,12 @@ class ResumeSkill(Base):
     __tablename__ = "resume_skills"
 
     resume_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("resumes.id", ondelete="CASCADE"),
         primary_key=True,
     )
     skill_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("skills.id", ondelete="CASCADE"),
         primary_key=True,
     )
@@ -76,12 +76,12 @@ class JobSkill(Base):
     __tablename__ = "job_skills"
 
     job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("jobs.id", ondelete="CASCADE"),
         primary_key=True,
     )
     skill_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("skills.id", ondelete="CASCADE"),
         primary_key=True,
     )

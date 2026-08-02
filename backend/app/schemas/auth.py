@@ -90,6 +90,9 @@ class UpdateProfileRequest(BaseModel):
     avatar_url: Optional[str] = Field(None, max_length=512)
 
 
+UserUpdateRequest = UpdateProfileRequest
+
+
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
 class UserResponse(BaseModel):

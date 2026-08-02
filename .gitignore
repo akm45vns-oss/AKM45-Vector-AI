@@ -53,6 +53,8 @@ uploads/
 data/
 *.faiss
 *.pkl
+*.db
+*.sqlite
 
 # ── HuggingFace cache ─────────────────────────────────────────
 .cache/

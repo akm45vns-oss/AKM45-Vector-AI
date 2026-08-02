@@ -12,10 +12,11 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    JSON,
     Text,
+    Uuid,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.engine import Base
@@ -45,25 +46,25 @@ class Application(Base):
     __tablename__ = "applications"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         index=True,
     )
     job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("jobs.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     resume_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("resumes.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     candidate_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -75,8 +76,8 @@ class Application(Base):
         default=ApplicationStatus.APPLIED,
         index=True,
     )
-    match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    match_breakdown: Mapped[Dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    match_score: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
+    match_breakdown: Mapped[Dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     llm_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 

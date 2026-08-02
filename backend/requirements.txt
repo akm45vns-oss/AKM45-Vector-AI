@@ -24,12 +24,12 @@ pydantic-settings==2.6.1
 resend==2.4.0
 
 # ── AI / NLP ─────────────────────────────────────────────────
-spacy==3.8.2
-sentence-transformers==3.3.1
-faiss-cpu==1.9.0
-torch==2.5.1
-transformers==4.47.0
-huggingface-hub==0.26.5
+spacy>=3.7.0
+sentence-transformers>=3.0.0
+faiss-cpu>=1.7.0
+torch>=2.0.0
+transformers>=4.40.0
+huggingface-hub>=0.20.0
 
 # ── Document Parsing ─────────────────────────────────────────
 pymupdf==1.25.0

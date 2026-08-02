@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import structlog
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -34,15 +34,21 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
 
     # Create database tables (Alembic handles migrations in production)
     if settings.ENVIRONMENT == "development":
-        await create_db_tables()
-        logger.info("Database tables verified")
+        try:
+            await create_db_tables()
+            logger.info("Database tables verified")
+        except Exception as e:
+            logger.warning("PostgreSQL server not connected locally. App running in offline mode.", error=str(e))
 
-    logger.info("HireSmart AI is ready to serve requests")
+    logger.info("AKM45 Vector AI is ready to serve requests")
     yield
 
     # ── Shutdown ─────────────────────────────────────────────
-    logger.info("Shutting down HireSmart AI")
-    await engine.dispose()
+    logger.info("Shutting down AKM45 Vector AI")
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
     logger.info("Database connections closed")
 
 
@@ -71,11 +77,18 @@ def create_application() -> FastAPI:
     # ── Middleware ───────────────────────────────────────────
     app.add_middleware(SlowAPIMiddleware)
 
+    origins = list(set(settings.ALLOWED_ORIGINS + [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ]))
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS,
+        allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["X-Total-Count", "X-Request-ID"],
     )
@@ -89,6 +102,17 @@ def create_application() -> FastAPI:
     # ── Exception Handlers ───────────────────────────────────
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    @app.exception_handler(HTTPException)
+    async def custom_http_exception_handler(request, exc: HTTPException):
+        headers = dict(exc.headers) if exc.headers else {}
+        headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+        headers["Access-Control-Allow-Credentials"] = "true"
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=headers,
+        )
+
     # ── Routers (imported lazily to avoid circular imports) ──
     from app.api.auth import router as auth_router
     from app.api.resumes import router as resumes_router
@@ -98,13 +122,25 @@ def create_application() -> FastAPI:
     from app.api.analytics import router as analytics_router
     from app.api.companies import router as companies_router
 
-    app.include_router(auth_router,         prefix="/auth",         tags=["Authentication"])
-    app.include_router(resumes_router,      prefix="/resume",       tags=["Resumes"])
-    app.include_router(jobs_router,         prefix="/jobs",         tags=["Jobs"])
-    app.include_router(applications_router, prefix="/applications", tags=["Applications"])
-    app.include_router(matching_router,     prefix="/matching",     tags=["Matching"])
-    app.include_router(analytics_router,    prefix="/analytics",    tags=["Analytics"])
-    app.include_router(companies_router,    prefix="/companies",    tags=["Companies"])
+    api_v1_router = APIRouter(prefix=settings.API_V1_STR)
+    api_v1_router.include_router(auth_router,         prefix="/auth",         tags=["Authentication"])
+    api_v1_router.include_router(resumes_router,      prefix="/resume",       tags=["Resumes"])
+    api_v1_router.include_router(jobs_router,         prefix="/jobs",         tags=["Jobs"])
+    api_v1_router.include_router(applications_router, prefix="/applications", tags=["Applications"])
+    api_v1_router.include_router(matching_router,     prefix="/matching",     tags=["Matching"])
+    api_v1_router.include_router(analytics_router,    prefix="/analytics",    tags=["Analytics"])
+    api_v1_router.include_router(companies_router,    prefix="/companies",    tags=["Companies"])
+
+    app.include_router(api_v1_router)
+
+    # Direct mount fallbacks
+    app.include_router(auth_router,         prefix="/auth",         tags=["Authentication - Legacy"])
+    app.include_router(resumes_router,      prefix="/resume",       tags=["Resumes - Legacy"])
+    app.include_router(jobs_router,         prefix="/jobs",         tags=["Jobs - Legacy"])
+    app.include_router(applications_router, prefix="/applications", tags=["Applications - Legacy"])
+    app.include_router(matching_router,     prefix="/matching",     tags=["Matching - Legacy"])
+    app.include_router(analytics_router,    prefix="/analytics",    tags=["Analytics - Legacy"])
+    app.include_router(companies_router,    prefix="/companies",    tags=["Companies - Legacy"])
 
     return app
 

@@ -25,6 +25,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import decode_token
 from app.database.engine import get_db
 from app.models.user import User, UserRole
@@ -95,9 +96,9 @@ async def get_current_verified_user(
 ) -> User:
     """
     Like get_current_user but also requires email verification.
-    Use this on sensitive endpoints.
+    Use this on sensitive endpoints. In development mode, auto-bypasses.
     """
-    if not current_user.is_email_verified:
+    if settings.ENVIRONMENT != "development" and not current_user.is_email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email address not verified. Please check your inbox.",

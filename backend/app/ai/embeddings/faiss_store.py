@@ -6,14 +6,21 @@ Maps UUID strings to index offsets using an internal ID mapping dict.
 
 import os
 import pickle
-from typing import List, Tuple, Dict
-import faiss
+from typing import List, Tuple, Dict, Any
 import numpy as np
 import structlog
 
 from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
+
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    faiss = None
+    FAISS_AVAILABLE = False
+    logger.warning("faiss package not installed. FAISS vector store will run in mock fallback mode.")
 
 
 class FAISSVectorStore:
@@ -25,18 +32,24 @@ class FAISSVectorStore:
         self.index_file = f"{index_path}.index"
         self.mapping_file = f"{index_path}.pkl"
 
-        # IndexFlatIP uses Inner Product (equivalent to Cosine Similarity when vectors are L2-normalized)
-        self.index = faiss.IndexFlatIP(dimension)
         self.id_to_uuid: Dict[int, str] = {}
         self.uuid_to_id: Dict[str, int] = {}
         self._next_id = 0
 
-        self.load()
+        if FAISS_AVAILABLE:
+            # IndexFlatIP uses Inner Product (equivalent to Cosine Similarity when vectors are L2-normalized)
+            self.index = faiss.IndexFlatIP(dimension)
+            self.load()
+        else:
+            self.index = None
 
     def add_vector(self, entity_id: str, vector: List[float]) -> int:
         """
         Add or update a vector embedding for an entity (resume or job ID).
         """
+        if not FAISS_AVAILABLE or self.index is None:
+            return 0
+
         vec_np = np.array([vector], dtype=np.float32)
         faiss.normalize_L2(vec_np)
 
@@ -62,7 +75,7 @@ class FAISSVectorStore:
         Returns:
             List of (entity_id, similarity_score)
         """
-        if self.index.ntotal == 0:
+        if not FAISS_AVAILABLE or self.index is None or self.index.ntotal == 0:
             return []
 
         query_np = np.array([query_vector], dtype=np.float32)
@@ -79,8 +92,10 @@ class FAISSVectorStore:
 
         return results
 
-    def save((self) -> None:
+    def save(self) -> None:
         """Persist index and ID map to disk."""
+        if not FAISS_AVAILABLE or self.index is None:
+            return
         os.makedirs(os.path.dirname(self.index_file), exist_ok=True)
         faiss.write_index(self.index, self.index_file)
         with open(self.mapping_file, "wb") as f:
@@ -89,6 +104,8 @@ class FAISSVectorStore:
 
     def load(self) -> None:
         """Load index and ID map from disk if present."""
+        if not FAISS_AVAILABLE:
+            return
         if os.path.exists(self.index_file) and os.path.exists(self.mapping_file):
             try:
                 self.index = faiss.read_index(self.index_file)
