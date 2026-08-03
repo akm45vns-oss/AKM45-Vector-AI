@@ -14,6 +14,7 @@ import {
   FileCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import NeuralBg from "@/components/ui/NeuralBg";
 
 export default function LandingPage() {
   return (
@@ -51,14 +52,15 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6 max-w-4xl mx-auto"
-        >
+      {/* Hero Section with Neural WebGL Background */}
+      <NeuralBg hue={200} saturation={0.8} chroma={0.6} className="py-24 px-6 border-b border-border/30">
+        <div className="max-w-7xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6 max-w-4xl mx-auto"
+          >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5" /> Next-Gen AI Resume Screening Platform
           </div>
@@ -87,7 +89,8 @@ export default function LandingPage() {
             </Link>
           </div>
         </motion.div>
-      </section>
+      </div>
+    </NeuralBg>
 
       {/* Feature Grid */}
       <section id="features" className="py-20 px-6 max-w-7xl mx-auto w-full">
