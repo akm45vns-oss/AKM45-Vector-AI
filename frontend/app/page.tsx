@@ -18,7 +18,7 @@ import NeuralBg from "@/components/ui/NeuralBg";
 
 export default function LandingPage() {
   return (
-    <NeuralBg hue={200} saturation={0.8} chroma={0.6} particleCount={85}>
+    <NeuralBg hue={200} saturation={0.8} chroma={0.6}>
       <div className="min-h-screen bg-gradient-dark/80 text-foreground flex flex-col justify-between selection:bg-primary selection:text-white">
         {/* Navbar */}
         <nav className="border-b border-border/40 backdrop-blur-md bg-background/50 sticky top-0 z-50">

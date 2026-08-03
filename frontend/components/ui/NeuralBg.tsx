@@ -6,36 +6,14 @@ export interface NeuralBgProps {
   hue?: number;
   saturation?: number;
   chroma?: number;
-  speed?: number;
-  particleCount?: number;
   className?: string;
   children?: React.ReactNode;
-}
-
-interface Node {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  baseRadius: number;
-  pulseSpeed: number;
-  pulsePhase: number;
-}
-
-interface PulseSignal {
-  fromNode: number;
-  toNode: number;
-  progress: number;
-  speed: number;
 }
 
 export const NeuralBg: React.FC<NeuralBgProps> = ({
   hue = 200,
   saturation = 0.8,
   chroma = 0.6,
-  speed = 1.0,
-  particleCount = 65,
   className = "",
   children,
 }) => {
@@ -45,206 +23,224 @@ export const NeuralBg: React.FC<NeuralBgProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animId: number;
-    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
-    let height = (canvas.height = canvas.parentElement?.clientHeight || 600);
-
-    const nodes: Node[] = [];
-    const pulses: PulseSignal[] = [];
-    const mouse = { x: -1000, y: -1000 };
-
-    // Initialize Nodes
-    const count = Math.min(particleCount, Math.floor((width * height) / 12000));
-    for (let i = 0; i < count; i++) {
-      nodes.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.8 * speed,
-        vy: (Math.random() - 0.5) * 0.8 * speed,
-        radius: Math.random() * 2.5 + 1.5,
-        baseRadius: Math.random() * 2.5 + 1.5,
-        pulseSpeed: Math.random() * 0.03 + 0.01,
-        pulsePhase: Math.random() * Math.PI * 2,
-      });
+    const gl = canvas.getContext("webgl") || (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
+    if (!gl) {
+      console.warn("WebGL context unavailable.");
+      return;
     }
 
-    const handleResize = () => {
-      if (!canvas || !canvas.parentElement) return;
-      width = canvas.width = canvas.parentElement.clientWidth || window.innerWidth;
-      height = canvas.height = canvas.parentElement.clientHeight || 600;
-    };
+    // Enable alpha blending
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-    };
+    const vertexShaderSource = `
+      precision mediump float;
+      attribute vec2 a_position;
+      attribute vec2 a_uv;
+      varying vec2 vUv;
+      void main() {
+        vUv = a_uv;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
 
-    const handleMouseLeave = () => {
-      mouse.x = -1000;
-      mouse.y = -1000;
-    };
+    const fragmentShaderSource = `
+      precision mediump float;
 
-    window.addEventListener("resize", handleResize);
-    canvas.parentElement?.addEventListener("mousemove", handleMouseMove);
-    canvas.parentElement?.addEventListener("mouseleave", handleMouseLeave);
+      varying vec2 vUv;
+      uniform float u_time;
+      uniform float u_ratio;
+      uniform vec2 u_pointer_position;
+      uniform float u_scroll_progress;
+      uniform float u_hue;
+      uniform float u_saturation;
+      uniform float u_chroma;
 
-    const maxDist = 140;
-    const satPct = Math.round(saturation * 100);
-    const lightPct = Math.round(chroma * 80);
-
-    // Animation Loop
-    const draw = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Radial background glow matching hue
-      const bgGlow = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
-        10,
-        width / 2,
-        height / 2,
-        Math.max(width, height) / 1.2
-      );
-      bgGlow.addColorStop(0, `hsla(${hue}, ${satPct}%, 12%, 0.45)`);
-      bgGlow.addColorStop(0.5, `hsla(${hue + 20}, ${satPct}%, 7%, 0.3)`);
-      bgGlow.addColorStop(1, `hsla(${hue}, ${satPct}%, 3%, 0.1)`);
-      ctx.fillStyle = bgGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      // Update and draw connections (Synapses)
-      for (let i = 0; i < nodes.length; i++) {
-        const nodeA = nodes[i];
-
-        // Move node
-        nodeA.x += nodeA.vx;
-        nodeA.y += nodeA.vy;
-
-        // Bounce walls
-        if (nodeA.x < 0 || nodeA.x > width) nodeA.vx *= -1;
-        if (nodeA.y < 0 || nodeA.y > height) nodeA.vy *= -1;
-
-        // Mouse attraction
-        const dxMouse = mouse.x - nodeA.x;
-        const dyMouse = mouse.y - nodeA.y;
-        const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
-        if (distMouse < 180) {
-          nodeA.x += (dxMouse / distMouse) * 0.6;
-          nodeA.y += (dyMouse / distMouse) * 0.6;
-          nodeA.radius = nodeA.baseRadius + (1 - distMouse / 180) * 3;
-        } else {
-          nodeA.radius = nodeA.baseRadius;
-        }
-
-        // Draw connections to nearby nodes
-        for (let j = i + 1; j < nodes.length; j++) {
-          const nodeB = nodes[j];
-          const dx = nodeB.x - nodeA.x;
-          const dy = nodeB.y - nodeA.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * 0.55;
-            ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = `hsla(${hue + (dist / maxDist) * 30}, ${satPct}%, ${lightPct}%, ${alpha})`;
-            ctx.lineWidth = (1 - dist / maxDist) * 1.5;
-            ctx.stroke();
-
-            // Randomly spawn traveling impulse pulse
-            if (Math.random() < 0.0015) {
-              pulses.push({
-                fromNode: i,
-                toNode: j,
-                progress: 0,
-                speed: 0.02 + Math.random() * 0.02,
-              });
-            }
-          }
-        }
+      vec2 rotate(vec2 uv, float th) {
+        return mat2(cos(th), sin(th), -sin(th), cos(th)) * uv;
       }
 
-      // Update and draw traveling synaptic pulses
-      for (let p = pulses.length - 1; p >= 0; p--) {
-        const pulse = pulses[p];
-        pulse.progress += pulse.speed;
+      float neuro_shape(vec2 uv, float t, float p) {
+        vec2 sine_acc = vec2(0.);
+        vec2 res = vec2(0.);
+        float scale = 8.;
 
-        if (pulse.progress >= 1) {
-          pulses.splice(p, 1);
-          continue;
+        for (int j = 0; j < 15; j++) {
+          uv = rotate(uv, 1.);
+          sine_acc = rotate(sine_acc, 1.);
+          vec2 layer = uv * scale + float(j) + sine_acc - t;
+          sine_acc += sin(layer) + 2.4 * p;
+          res += (.5 + .5 * cos(layer)) / scale;
+          scale *= (1.2);
         }
-
-        const nodeA = nodes[pulse.fromNode];
-        const nodeB = nodes[pulse.toNode];
-        if (!nodeA || !nodeB) continue;
-
-        const px = nodeA.x + (nodeB.x - nodeA.x) * pulse.progress;
-        const py = nodeA.y + (nodeB.y - nodeA.y) * pulse.progress;
-
-        const pGlow = ctx.createRadialGradient(px, py, 0, px, py, 8);
-        pGlow.addColorStop(0, `hsla(${hue + 40}, 100%, 85%, 0.95)`);
-        pGlow.addColorStop(0.5, `hsla(${hue}, 100%, 65%, 0.6)`);
-        pGlow.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
-
-        ctx.beginPath();
-        ctx.arc(px, py, 8, 0, Math.PI * 2);
-        ctx.fillStyle = pGlow;
-        ctx.fill();
+        return res.x + res.y;
       }
 
-      // Draw Nodes (Neurons)
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        node.pulsePhase += node.pulseSpeed;
-        const currentRadius = node.radius + Math.sin(node.pulsePhase) * 0.8;
+      vec3 hsl2rgb(vec3 c) {
+        vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0);
+        return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+      }
 
-        const nGlow = ctx.createRadialGradient(
-          node.x,
-          node.y,
-          0,
-          node.x,
-          node.y,
-          currentRadius * 4
+      void main() {
+        vec2 uv = .5 * vUv;
+        uv.x *= u_ratio;
+
+        vec2 pointer = vUv - u_pointer_position;
+        pointer.x *= u_ratio;
+        float p = clamp(length(pointer), 0., 1.);
+        p = .5 * pow(1. - p, 2.);
+
+        float t = .001 * u_time;
+        vec3 color = vec3(0.);
+
+        float noise = neuro_shape(uv, t, p);
+
+        noise = 1.2 * pow(noise, 3.);
+        noise += pow(noise, 10.);
+        noise = max(.0, noise - .5);
+        noise *= (1. - length(vUv - .5));
+
+        float normalizedHue = u_hue / 360.0;
+
+        vec3 hsl = vec3(
+          normalizedHue + 0.1 * sin(3.0 * u_scroll_progress + 1.5),
+          u_saturation,
+          u_chroma * 0.5 + 0.2 * sin(2.0 * u_scroll_progress)
         );
-        nGlow.addColorStop(0, `hsla(${hue}, 100%, 75%, 0.9)`);
-        nGlow.addColorStop(0.4, `hsla(${hue}, ${satPct}%, ${lightPct}%, 0.5)`);
-        nGlow.addColorStop(1, `hsla(${hue}, ${satPct}%, 30%, 0)`);
 
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, currentRadius * 4, 0, Math.PI * 2);
-        ctx.fillStyle = nGlow;
-        ctx.fill();
+        color = hsl2rgb(hsl);
+        color = color * noise;
 
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, currentRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `hsl(${hue + 20}, 100%, 85%)`;
-        ctx.fill();
+        gl_FragColor = vec4(color, noise);
       }
+    `;
 
-      animId = requestAnimationFrame(draw);
+    function compileShader(glCtx: WebGLRenderingContext, type: number, source: string) {
+      const shader = glCtx.createShader(type);
+      if (!shader) return null;
+      glCtx.shaderSource(shader, source);
+      glCtx.compileShader(shader);
+      if (!glCtx.getShaderParameter(shader, glCtx.COMPILE_STATUS)) {
+        console.error("Shader compile log:", glCtx.getShaderInfoLog(shader));
+        glCtx.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    if (!vs || !fs) return;
+
+    const program = gl.createProgram();
+    if (!program) return;
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error("Program link log:", gl.getProgramInfoLog(program));
+      return;
+    }
+
+    // Geometry Quad with UVs
+    // 2 triangles: [x, y, u, v]
+    const vertices = new Float32Array([
+      -1.0, -1.0,  0.0, 0.0,
+       1.0, -1.0,  1.0, 0.0,
+      -1.0,  1.0,  0.0, 1.0,
+      -1.0,  1.0,  0.0, 1.0,
+       1.0, -1.0,  1.0, 0.0,
+       1.0,  1.0,  1.0, 1.0,
+    ]);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const aPositionLoc = gl.getAttribLocation(program, "a_position");
+    const aUvLoc = gl.getAttribLocation(program, "a_uv");
+
+    const uTimeLoc = gl.getUniformLocation(program, "u_time");
+    const uRatioLoc = gl.getUniformLocation(program, "u_ratio");
+    const uPointerLoc = gl.getUniformLocation(program, "u_pointer_position");
+    const uScrollLoc = gl.getUniformLocation(program, "u_scroll_progress");
+    const uHueLoc = gl.getUniformLocation(program, "u_hue");
+    const uSatLoc = gl.getUniformLocation(program, "u_saturation");
+    const uChromaLoc = gl.getUniformLocation(program, "u_chroma");
+
+    let animFrameId: number;
+    const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
+
+    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+      pointer.targetX = clientX;
+      pointer.targetY = clientY;
     };
 
-    draw();
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("touchmove", handlePointerMove);
+
+    const resize = () => {
+      if (!canvas) return;
+      const displayWidth = window.innerWidth;
+      const displayHeight = window.innerHeight;
+      if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+    };
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    const render = (now: number) => {
+      pointer.x += (pointer.targetX - pointer.x) * 0.15;
+      pointer.y += (pointer.targetY - pointer.y) * 0.15;
+
+      gl.useProgram(program);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.enableVertexAttribArray(aPositionLoc);
+      gl.vertexAttribPointer(aPositionLoc, 2, gl.FLOAT, false, 16, 0);
+
+      gl.enableVertexAttribArray(aUvLoc);
+      gl.vertexAttribPointer(aUvLoc, 2, gl.FLOAT, false, 16, 8);
+
+      gl.uniform1f(uTimeLoc, now);
+      gl.uniform1f(uRatioLoc, canvas.width / canvas.height);
+      gl.uniform2f(uPointerLoc, pointer.x / window.innerWidth, 1.0 - pointer.y / window.innerHeight);
+      gl.uniform1f(uScrollLoc, window.pageYOffset / (2 * window.innerHeight));
+      gl.uniform1f(uHueLoc, hue);
+      gl.uniform1f(uSatLoc, saturation);
+      gl.uniform1f(uChromaLoc, chroma);
+
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      animFrameId = requestAnimationFrame(render);
+    };
+
+    animFrameId = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      if (canvas?.parentElement) {
-        canvas.parentElement.removeEventListener("mousemove", handleMouseMove);
-        canvas.parentElement.removeEventListener("mouseleave", handleMouseLeave);
-      }
-      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("touchmove", handlePointerMove);
+      cancelAnimationFrame(animFrameId);
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
     };
-  }, [hue, saturation, chroma, speed, particleCount]);
+  }, [hue, saturation, chroma]);
 
   return (
     <div className={`relative w-full min-h-screen overflow-hidden ${className}`}>
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-90"
+        className="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-95"
       />
       {children && <div className="relative z-10 w-full">{children}</div>}
     </div>
