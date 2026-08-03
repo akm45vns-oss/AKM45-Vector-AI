@@ -285,7 +285,7 @@ hiresmart-ai/
 | 2026-08-02 | Enterprise Candidate Resume Detail Screen | frontend/app/(dashboard)/candidate/resume/[id]/page.tsx | Built Enterprise Executive candidate dashboard with live LinkedIn/GitHub links, categorized skill taxonomy, AI evaluation, and raw text inspector |
 | 2026-08-02 | Git Push to GitHub Repository | git origin main | Pushed commit `c3d91b4` containing Enterprise AI Analysis suite and sub-route fixes to `https://github.com/akm45vns-oss/AKM45-Vector-AI.git` |
 | 2026-08-03 | React WebGL NeuralBg Component | frontend/components/ui/NeuralBg.tsx | Built high-performance 2D Canvas Neural Network animation with interactive glowing neurons, synaptic connections, and traveling energy pulses |
-| 2026-08-03 | Landing Page Neural Animation | frontend/app/page.tsx | Integrated `<NeuralBg hue={200} saturation={0.8} chroma={0.6} />` into the landing page hero section with 100% visible text & glowing background |
+| 2026-08-03 | Full Webpage Neural Animation | frontend/app/page.tsx | Expanded `<NeuralBg />` fixed background to span across the ENTIRE webpage from top to bottom |
 | 2026-08-02 | Extract Candidate Name Improvement | backend/app/ai/parser/extractor.py | Improved candidate name regex parser to extract candidate names from resume titles |
 | 2026-08-02 | Unlocked Database Deletion | backend/local_dev.db | Terminated process holding handle on `local_dev.db` and cleanly deleted file to generate fresh schema |
 | 2026-08-02 | Auth & Login Guide Provided | frontend/app/(auth)/* | Documented registration flow, login credentials requirements, and OpenAPI swagger testing |

@@ -18,43 +18,43 @@ import NeuralBg from "@/components/ui/NeuralBg";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-dark text-foreground flex flex-col justify-between selection:bg-primary selection:text-white">
-      {/* Navbar */}
-      <nav className="border-b border-border/40 backdrop-blur-md bg-background/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-primary/30">
-              <BrainCircuit className="w-6 h-6 text-white" />
+    <NeuralBg hue={200} saturation={0.8} chroma={0.6} particleCount={85}>
+      <div className="min-h-screen bg-gradient-dark/80 text-foreground flex flex-col justify-between selection:bg-primary selection:text-white">
+        {/* Navbar */}
+        <nav className="border-b border-border/40 backdrop-blur-md bg-background/50 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-primary/30">
+                <BrainCircuit className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xl font-bold tracking-tight">AKM45 Vector AI</span>
             </div>
-            <span className="text-xl font-bold tracking-tight">AKM45 Vector AI</span>
-          </div>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-          </div>
+            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+              <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+              <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
+              <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            </div>
 
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="py-2 px-4 rounded-lg bg-gradient-brand text-white text-sm font-semibold shadow-lg shadow-primary/30 hover:opacity-90 transition-all active:scale-95"
-            >
-              Get Started Free
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/login"
+                className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="py-2 px-4 rounded-lg bg-gradient-brand text-white text-sm font-semibold shadow-lg shadow-primary/30 hover:opacity-90 transition-all active:scale-95"
+              >
+                Get Started Free
+              </Link>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Hero Section with Neural WebGL Background */}
-      <NeuralBg hue={200} saturation={0.8} chroma={0.6} className="py-24 px-6 border-b border-border/30">
-        <div className="max-w-7xl mx-auto text-center">
+        {/* Hero Section */}
+        <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -89,8 +89,7 @@ export default function LandingPage() {
             </Link>
           </div>
         </motion.div>
-      </div>
-    </NeuralBg>
+      </section>
 
       {/* Feature Grid */}
       <section id="features" className="py-20 px-6 max-w-7xl mx-auto w-full">
@@ -193,5 +192,6 @@ export default function LandingPage() {
         <p>© 2026 AKM45 Vector AI Inc. All rights reserved. Built with Next.js 15, FastAPI, and FAISS.</p>
       </footer>
     </div>
-  );
+  </NeuralBg>
+);
 }

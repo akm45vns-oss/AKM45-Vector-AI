@@ -241,12 +241,12 @@ export const NeuralBg: React.FC<NeuralBgProps> = ({
   }, [hue, saturation, chroma, speed, particleCount]);
 
   return (
-    <div className={`relative w-full min-h-[500px] overflow-hidden ${className}`}>
+    <div className={`relative w-full min-h-screen overflow-hidden ${className}`}>
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-90"
+        className="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-90"
       />
-      {children && <div className="relative z-10">{children}</div>}
+      {children && <div className="relative z-10 w-full">{children}</div>}
     </div>
   );
 };
